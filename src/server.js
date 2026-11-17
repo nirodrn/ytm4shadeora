@@ -20,6 +20,7 @@ function getInnertube() {
 function cleanText(value) {
   if (!value) return '';
   if (typeof value === 'string') return value;
+  if (typeof value === 'object') return value.name || value.text || value.runs?.map((run) => run.text).join('') || '';
   return value.text || value.toString?.() || '';
 }
 
