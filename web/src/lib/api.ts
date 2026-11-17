@@ -12,6 +12,41 @@ import {
 } from "./apiTypes";
 import type { AlbumCard, AlbumPage, ArtistPage, Genre, GenreArtist, GenrePage, Library, Playlist, Track } from "./types";
 
+const PIPED_INSTANCES = [
+  "https://pipedapi.ducks.party",
+  "https://pipedapi.adminforge.de",
+  "https://pipedapi.kavin.rocks",
+  "https://pipedapi.reallyaweso.me",
+];
+
+async function pipedRequest<T>(path: string, signal?: AbortSignal): Promise<T> {
+  let lastError: unknown;
+  for (const instance of PIPED_INSTANCES) {
+    try {
+      const response = await fetch(`${instance}${path}`, { signal: signal ?? AbortSignal.timeout(12_000) });
+      if (!response.ok) throw new Error(`Piped returned ${response.status}`);
+      return await response.json() as T;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error("No Piped instance is available");
+}
+
+function pipedTrack(item: any): Track {
+  const id = item.url?.match(/[?&]v=([^&]+)/)?.[1] || item.id;
+  return {
+    id,
+    title: item.title || "Untitled",
+    artist: item.uploaderName || item.uploaderUrl?.split("/").pop() || "YouTube Music",
+    album: item.album || undefined,
+    duration: Number(item.duration) || 0,
+    thumb: item.thumbnail || "",
+    art: item.thumbnail || "",
+    kind: "song",
+  };
+}
+
 // The HTTP backend: the Musike server (web app, desktop app). The Android build swaps this module for native/api.ts.
 export * from "./apiTypes";
 
@@ -37,7 +72,8 @@ async function request<T>(path: string, init?: RequestInit & { json?: unknown })
 
 export const api: MusikeApi = {
   search: (q: string, type: "song" | "video", signal?: AbortSignal) =>
-    request<{ tracks: Track[] }>(`/api/search?q=${encodeURIComponent(q)}&type=${type}`, { signal }).then((r) => r.tracks),
+    pipedRequest<{ items?: any[] }>(`/search?q=${encodeURIComponent(q)}&filter=${type === "video" ? "videos" : "music_songs"}`, signal)
+      .then((r) => (r.items ?? []).map(pipedTrack).filter((track) => track.id)),
   suggest: (q: string, signal?: AbortSignal) =>
     request<{ suggestions: string[] }>(`/api/suggest?q=${encodeURIComponent(q)}`, { signal }).then((r) => r.suggestions),
   radio: (id: string) => request<{ tracks: Track[] }>(`/api/radio/${id}`).then((r) => r.tracks),
@@ -84,7 +120,16 @@ export const api: MusikeApi = {
 /** What a media element plays for a track: here, the server's stream proxy. The Android backend resolves it on the phone. */
 export const streamSource = (id: string, kind: "audio" | "video", quality: "sd" | "hd"): string | Promise<string> =>
   kind === "audio"
-    ? request<{ url: string }>(`/api/direct/${id}/audio`).then((result) => result.url)
+    ? pipedRequest<{ audioStreams?: { url?: string; bitrate?: number; mimeType?: string }[] }>(`/streams/${id}`)
+        .then((result) => {
+          const streams = (result.audioStreams ?? []).filter((stream) => stream.url);
+          const preferred = streams
+            .filter((stream) => stream.mimeType?.startsWith("audio/mp4"))
+            .sort((a, b) => (b.bitrate ?? 0) - (a.bitrate ?? 0))[0]
+            || streams.sort((a, b) => (b.bitrate ?? 0) - (a.bitrate ?? 0))[0];
+          if (!preferred?.url) throw new ApiError(502, "Piped returned no playable audio stream", "maybe_outdated");
+          return preferred.url;
+        })
     : `/api/stream/${id}/video?q=${quality}`;
 
 /** Saves a text file the way this platform does it: a browser download (the desktop app shows "Save as"). */
