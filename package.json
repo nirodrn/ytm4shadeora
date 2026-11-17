@@ -6,7 +6,6 @@
   "scripts": {
     "dev": "pnpm --parallel --filter ./server --filter ./web dev",
     "build": "pnpm --filter ./web build",
-    "prestart": "corepack pnpm install --frozen-lockfile && corepack pnpm --filter ./web build",
     "start": "pnpm --filter ./server start",
     "desktop": "pnpm --filter musike-desktop start",
     "installer": "pnpm --filter musike-desktop dist",

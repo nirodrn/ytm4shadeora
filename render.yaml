@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: ytm4shadeora
+    runtime: node
+    branch: main
+    buildCommand: corepack pnpm install --frozen-lockfile && corepack pnpm build
+    startCommand: corepack pnpm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: MUSIKE_LANG
+        value: en
+      - key: MUSIKE_LOCATION
+        value: US
