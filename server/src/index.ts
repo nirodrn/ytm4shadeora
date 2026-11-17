@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { networkInterfaces } from "node:os";
 import path from "node:path";
 import { startServer } from "./app.js";
+import { ensureEssentials } from "./bootstrap.js";
 import { config } from "./config.js";
 
 const { port, tools } = await startServer();
@@ -18,3 +19,11 @@ console.log(`  yt-dlp:  ${tools.ytdlp ?? "NOT FOUND (install it from Musike's Se
 if (!tools.deno) console.log(`  Deno:    not found (YouTube may fail without it)`);
 if (!tools.ffmpeg) console.log(`  FFmpeg:  not found (HD video unavailable)`);
 console.log(`  Data:    ${path.relative(process.cwd(), config.dataDir) || config.dataDir}\n`);
+
+// Render and other ephemeral hosts get a writable private directory. Download
+// the audio tools after binding the port so health checks do not time out.
+if (config.binDir && (!tools.ytdlp || !tools.deno)) {
+  ensureEssentials()
+    .then(() => console.log("  yt-dlp and Deno are ready"))
+    .catch((error: Error) => console.error("  Music tools download failed:", error.message));
+}

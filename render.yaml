@@ -11,3 +11,5 @@ services:
         value: en
       - key: MUSIKE_LOCATION
         value: US
+      - key: MUSIKE_BIN_DIR
+        value: /tmp/musike-bin
