@@ -1,19 +1,15 @@
 {
-  "name": "ytm4shadeora",
-  "version": "0.1.0",
+  "name": "musike",
   "private": true,
+  "version": "1.5.1",
   "type": "module",
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "node --watch src/server.js"
+    "dev": "pnpm --parallel --filter ./server --filter ./web dev",
+    "build": "pnpm --filter ./web build",
+    "start": "pnpm --filter ./server start",
+    "desktop": "pnpm --filter musike-desktop start",
+    "installer": "pnpm --filter musike-desktop dist",
+    "typecheck": "pnpm -r typecheck"
   },
-  "engines": {
-    "node": ">=20"
-  },
-  "dependencies": {
-    "cors": "^2.8.5",
-    "debug": "^2.6.9",
-    "express": "^5.1.0",
-    "youtubei.js": "^18.3.0"
-  }
+  "packageManager": "pnpm@10.14.0"
 }
