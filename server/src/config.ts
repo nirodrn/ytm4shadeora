@@ -20,7 +20,7 @@ export const config = {
    * Private folder for yt-dlp, Deno and FFmpeg downloaded by Musike itself (the desktop app sets it).
    * Searched before the system PATH, and where "Instalar" puts the tools when set.
    */
-  binDir: process.env.MUSIKE_BIN_DIR || (process.env.RENDER ? "/tmp/musike-bin" : null),
+  binDir: process.env.MUSIKE_BIN_DIR || (process.env.RENDER || process.env.NODE_ENV === "production" ? "/tmp/musike-bin" : null),
   /** YouTube Music language when a request doesn't say (the app always does). */
   lang: process.env.MUSIKE_LANG ?? "en",
   location: process.env.MUSIKE_LOCATION ?? "BR",
