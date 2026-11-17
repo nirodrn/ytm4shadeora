@@ -23,14 +23,27 @@ function cleanText(value) {
   return value.text || value.toString?.() || '';
 }
 
+function getThumbnail(item) {
+  return item?.best_thumbnail?.url
+    || item?.thumbnail?.contents?.at(-1)?.url
+    || item?.thumbnails?.at(-1)?.url
+    || null;
+}
+
+function getArtist(item) {
+  if (item?.artists?.length) return item.artists.map((artist) => cleanText(artist)).join(', ');
+  if (item?.author) return cleanText(item.author);
+  return cleanText(item?.flex_columns?.[1]);
+}
+
 function mapVideo(video) {
-  const id = video.id || video.video_id;
+  const id = video.id || video.video_id || video.endpoint?.payload?.videoId;
   return {
     id,
     title: cleanText(video.title),
-    artist: cleanText(video.author),
+    artist: getArtist(video),
     duration: video.duration?.seconds || video.length_text || null,
-    thumbnail: video.best_thumbnail?.url || video.thumbnails?.at(-1)?.url || null,
+    thumbnail: getThumbnail(video),
     url: id ? `https://www.youtube.com/watch?v=${id}` : null
   };
 }
@@ -48,8 +61,8 @@ app.get('/api/search', async (req, res) => {
 
   try {
     const youtube = await getInnertube();
-    const result = await youtube.music.search(query);
-    const contents = result.contents || [];
+    const result = await youtube.music.search(query, { type: 'song' });
+    const contents = result.songs?.contents || result.contents || [];
     const songs = contents
       .filter((item) => item.type === 'Song' || item.video_id || item.id)
       .map(mapVideo)
