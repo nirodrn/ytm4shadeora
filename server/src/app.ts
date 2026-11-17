@@ -45,6 +45,19 @@ export async function startServer(opts: StartOptions = {}): Promise<RunningServe
   const found = await refreshTools();
   const app = Fastify({ logger: { level: process.env.LOG_LEVEL ?? "warn" } });
 
+  // The Shadeora music page is hosted separately from this Musike service.
+  app.addHook("onRequest", (req, reply, done) => {
+    const origin = req.headers.origin;
+    if (origin === "https://shadeora.web.app" || origin === "https://shadeora.firebaseapp.com") {
+      reply.header("access-control-allow-origin", origin);
+      reply.header("access-control-allow-methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+      reply.header("access-control-allow-headers", "content-type,x-musike-lang");
+      reply.header("vary", "Origin");
+    }
+    if (req.method === "OPTIONS") return reply.code(204).send();
+    done();
+  });
+
   app.setErrorHandler((err, req, reply) => {
     const e = err as Error & { statusCode?: number };
     const status = e instanceof HttpError ? e.status : e.statusCode ?? 500;
