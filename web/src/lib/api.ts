@@ -83,7 +83,9 @@ export const api: MusikeApi = {
 
 /** What a media element plays for a track: here, the server's stream proxy. The Android backend resolves it on the phone. */
 export const streamSource = (id: string, kind: "audio" | "video", quality: "sd" | "hd"): string | Promise<string> =>
-  kind === "audio" ? `/api/stream/${id}/audio` : `/api/stream/${id}/video?q=${quality}`;
+  kind === "audio"
+    ? request<{ url: string }>(`/api/direct/${id}/audio`).then((result) => result.url)
+    : `/api/stream/${id}/video?q=${quality}`;
 
 /** Saves a text file the way this platform does it: a browser download (the desktop app shows "Save as"). */
 export async function saveFile(name: string, text: string) {

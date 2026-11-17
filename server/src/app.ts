@@ -134,6 +134,13 @@ export async function startServer(opts: StartOptions = {}): Promise<RunningServe
 
   app.get("/api/stream/:id/audio", (req, reply) => proxyStream(req, reply, videoId(req.params), "audio"));
 
+  // Experimental no-proxy mode: the browser receives the short-lived YouTube
+  // URL and requests the audio directly, avoiding Render egress.
+  app.get("/api/direct/:id/audio", async (req) => {
+    const resolved = await resolveStreams(videoId(req.params));
+    return { url: resolved.audio.url, mime: resolved.audio.mime, expiresAt: resolved.expiresAt };
+  });
+
   app.get("/api/stream/:id/video", async (req, reply) => {
     const id = videoId(req.params);
     const { q } = req.query as { q?: string };
